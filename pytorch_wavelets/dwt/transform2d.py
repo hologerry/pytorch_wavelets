@@ -68,9 +68,9 @@ class DWTForward(nn.Module):
         # Do a multilevel transform
         for j in range(self.J):
             # Do 1 level of the transform
-            ll, high = lowlevel.AFB2D.apply(
-                ll, self.h0_col, self.h1_col, self.h0_row, self.h1_row, mode)
+            ll_cur, high = lowlevel.AFB2D.apply(ll, self.h0_col, self.h1_col, self.h0_row, self.h1_row, mode)
             yh.append(high)
+            ll = ll_cur
 
         return ll, yh
 
@@ -125,23 +125,23 @@ class DWTInverse(nn.Module):
             values as zeros (not in an efficient way though).
         """
         yl, yh = coeffs
-        ll = yl
+        ll_prev = yl
         mode = lowlevel.mode_to_int(self.mode)
 
         # Do a multilevel inverse transform
         for h in yh[::-1]:
             if h is None:
-                h = torch.zeros(ll.shape[0], ll.shape[1], 3, ll.shape[-2],
-                                ll.shape[-1], device=ll.device)
+                h = torch.zeros(ll_prev.shape[0], ll_prev.shape[1], 3, ll_prev.shape[-2],
+                                ll_prev.shape[-1], device=ll_prev.device)
 
             # 'Unpad' added dimensions
-            if ll.shape[-2] > h.shape[-2]:
-                ll = ll[...,:-1,:]
-            if ll.shape[-1] > h.shape[-1]:
-                ll = ll[...,:-1]
-            ll = lowlevel.SFB2D.apply(
-                ll, h, self.g0_col, self.g1_col, self.g0_row, self.g1_row, mode)
-        return ll
+            if ll_prev.shape[-2] > h.shape[-2]:
+                ll_prev = ll_prev[...,:-1,:].clone()
+            if ll_prev.shape[-1] > h.shape[-1]:
+                ll_prev = ll_prev[...,:-1].clone()
+            ll_cur = lowlevel.SFB2D.apply(ll_prev, h, self.g0_col, self.g1_col, self.g0_row, self.g1_row, mode)
+            ll_prev = ll_cur
+        return ll_prev
 
 
 class SWTForward(nn.Module):
@@ -203,6 +203,6 @@ class SWTForward(nn.Module):
             # Do 1 level of the transform
             y = lowlevel.afb2d_atrous(ll, filts, self.mode, 2**j)
             coeffs.append(y)
-            ll = y[:,:,0]
+            ll = y[:,:,0].clone()
 
         return coeffs

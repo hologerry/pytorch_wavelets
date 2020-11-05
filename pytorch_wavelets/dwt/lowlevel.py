@@ -342,8 +342,10 @@ class AFB2D(Function):
         y = afb1d(lohi, h0_col, h1_col, mode=mode, dim=2)
         s = y.shape
         y = y.reshape(s[0], -1, 4, s[-2], s[-1])
-        low = y[:,:,0].contiguous()
-        highs = y[:,:,1:].contiguous()
+        # low = y[:,:,0].contiguous()
+        # highs = y[:,:,1:].contiguous()
+        low = y[:,:,0].clone()
+        highs = y[:,:,1:].clone()
         return low, highs
 
     @staticmethod
@@ -356,12 +358,18 @@ class AFB2D(Function):
             lo = sfb1d(low, lh, h0_col, h1_col, mode=mode, dim=2)
             hi = sfb1d(hl, hh, h0_col, h1_col, mode=mode, dim=2)
             dx = sfb1d(lo, hi, h0_row, h1_row, mode=mode, dim=3)
+            # if dx.shape[-2] > ctx.shape[-2] and dx.shape[-1] > ctx.shape[-1]:
+            #     dx = dx[:,:,:ctx.shape[-2], :ctx.shape[-1]]
+            # elif dx.shape[-2] > ctx.shape[-2]:
+            #     dx = dx[:,:,:ctx.shape[-2]]
+            # elif dx.shape[-1] > ctx.shape[-1]:
+            #     dx = dx[:,:,:,:ctx.shape[-1]]
             if dx.shape[-2] > ctx.shape[-2] and dx.shape[-1] > ctx.shape[-1]:
-                dx = dx[:,:,:ctx.shape[-2], :ctx.shape[-1]]
+                dx = dx[:,:,:ctx.shape[-2], :ctx.shape[-1]].clone()
             elif dx.shape[-2] > ctx.shape[-2]:
-                dx = dx[:,:,:ctx.shape[-2]]
+                dx = dx[:,:,:ctx.shape[-2]].clone()
             elif dx.shape[-1] > ctx.shape[-1]:
-                dx = dx[:,:,:,:ctx.shape[-1]]
+                dx = dx[:,:,:,:ctx.shape[-1]].clone()
         return dx, None, None, None, None, None
 
 
@@ -395,9 +403,9 @@ def afb2d(x, filts, mode='zero'):
                 h0, h1, device=x.device)
         else:
             h0_col = h0
-            h0_row = h0.transpose(2,3)
+            h0_row = h0.transpose(2, 3)
             h1_col = h1
-            h1_row = h1.transpose(2,3)
+            h1_row = h1.transpose(2, 3)
     elif len(filts) == 4:
         if True in tensorize:
             h0_col, h1_col, h0_row, h1_row = prep_filt_afb2d(
@@ -497,10 +505,10 @@ def afb2d_nonsep(x, filts, mode='zero'):
 
     if mode == 'periodization' or mode == 'per':
         if x.shape[2] % 2 == 1:
-            x = torch.cat((x, x[:,:,-1:]), dim=2)
+            x = torch.cat((x, x[:,:,-1:].clone()), dim=2)
             Ny += 1
         if x.shape[3] % 2 == 1:
-            x = torch.cat((x, x[:,:,:,-1:]), dim=3)
+            x = torch.cat((x, x[:,:,:,-1:].clone()), dim=3)
             Nx += 1
         pad = (Ly-1, Lx-1)
         stride = (2, 2)
@@ -630,8 +638,11 @@ class SFB2D(Function):
             dx = afb1d(dx, g0_col, g1_col, mode=mode, dim=2)
             s = dx.shape
             dx = dx.reshape(s[0], -1, 4, s[-2], s[-1])
-            dlow = dx[:,:,0].contiguous()
-            dhigh = dx[:,:,1:].contiguous()
+            # dlow = dx[:,:,0].contiguous()
+            # dhigh = dx[:,:,1:].contiguous()
+            dlow = dx[:,:,0].clone()
+            dhigh = dx[:,:,1:].clone()
+
         return dlow, dhigh, None, None, None, None, None
 
 

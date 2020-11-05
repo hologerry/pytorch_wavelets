@@ -4,6 +4,7 @@ import numpy as np
 from torch.autograd import Function
 from pytorch_wavelets.utils import reflect
 import pywt
+torch.autograd.set_detect_anomaly(True)
 
 
 def roll(x, n, dim, make_even=False):

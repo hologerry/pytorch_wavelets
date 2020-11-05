@@ -2,6 +2,7 @@ import torch.nn as nn
 import pywt
 import pytorch_wavelets.dwt.lowlevel as lowlevel
 import torch
+torch.autograd.set_detect_anomaly(True)
 
 
 class DWTForward(nn.Module):

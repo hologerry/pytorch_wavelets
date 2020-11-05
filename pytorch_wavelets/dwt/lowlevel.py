@@ -339,7 +339,9 @@ class AFB2D(Function):
         ctx.shape = x.shape[-2:]
         mode = int_to_mode(mode)
         ctx.mode = mode
+        torch.autograd.set_detect_anomaly(True)
         lohi = afb1d(x, h0_row, h1_row, mode=mode, dim=3)
+        torch.autograd.set_detect_anomaly(True)
         y = afb1d(lohi, h0_col, h1_col, mode=mode, dim=2)
         s = y.shape
         y = y.reshape(s[0], -1, 4, s[-2], s[-1])
@@ -619,6 +621,7 @@ class SFB2D(Function):
     """
     @staticmethod
     def forward(ctx, low, highs, g0_row, g1_row, g0_col, g1_col, mode):
+        torch.autograd.set_detect_anomaly(True)
         mode = int_to_mode(mode)
         ctx.mode = mode
         ctx.save_for_backward(g0_row, g1_row, g0_col, g1_col)
@@ -631,6 +634,7 @@ class SFB2D(Function):
 
     @staticmethod
     def backward(ctx, dy):
+        torch.autograd.set_detect_anomaly(True)
         dlow, dhigh = None, None
         if ctx.needs_input_grad[0]:
             mode = ctx.mode

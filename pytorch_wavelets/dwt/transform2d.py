@@ -146,7 +146,7 @@ class DWTInverse(nn.Module):
             print("self.g1_col size", self.g1_col.size())
             print("self.g0_row size", self.g0_row.size())
             print("self.g1_row size", self.g1_row.size())
-            ll_cur = lowlevel.SFB2D.apply(ll_prev, h, self.g0_col, self.g1_col, self.g0_row, self.g1_row, mode)
+            ll_cur = lowlevel.SFB2D.apply(ll_prev, h, self.g0_col.clone(), self.g1_col.clone(), self.g0_row.clone(), self.g1_row.clone(), mode)
             ll_prev = ll_cur
         return ll_prev
 

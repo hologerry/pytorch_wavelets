@@ -16,13 +16,13 @@ def roll(x, n, dim, make_even=False):
         end = 0
 
     if dim == 0:
-        return torch.cat((x[-n:], x[:-n+end]), dim=0)
+        return torch.cat((x[-n:].clone(), x[:-n+end].clone()), dim=0)
     elif dim == 1:
-        return torch.cat((x[:,-n:], x[:,:-n+end]), dim=1)
+        return torch.cat((x[:, -n:].clone(), x[:, :-n+end].clone()), dim=1)
     elif dim == 2 or dim == -2:
-        return torch.cat((x[:,:,-n:], x[:,:,:-n+end]), dim=2)
+        return torch.cat((x[:, :, -n:].clone(), x[:, :, :-n+end].clone()), dim=2)
     elif dim == 3 or dim == -1:
-        return torch.cat((x[:,:,:,-n:], x[:,:,:,:-n+end]), dim=3)
+        return torch.cat((x[:, :, :, -n:].clone(), x[:, :, :, :-n+end].clone()), dim=3)
 
 
 def mypad(x, pad, mode='constant', value=0):
@@ -39,15 +39,15 @@ def mypad(x, pad, mode='constant', value=0):
         # Vertical only
         if pad[0] == 0 and pad[1] == 0:
             m1, m2 = pad[2], pad[3]
-            l = x.shape[-2]
+            l = x.shape[-2]  # noqa
             xe = reflect(np.arange(-m1, l+m2, dtype='int32'), -0.5, l-0.5)
-            return x[:,:,xe]
+            return x[:, :, xe].clone()
         # horizontal only
         elif pad[2] == 0 and pad[3] == 0:
             m1, m2 = pad[0], pad[1]
-            l = x.shape[-1]
+            l = x.shape[-1]  # noqa
             xe = reflect(np.arange(-m1, l+m2, dtype='int32'), -0.5, l-0.5)
-            return x[:,:,:,xe]
+            return x[:, :, :, xe].clone()
         # Both
         else:
             m1, m2 = pad[0], pad[1]
@@ -58,18 +58,18 @@ def mypad(x, pad, mode='constant', value=0):
             xe_col = reflect(np.arange(-m1, l2+m2, dtype='int32'), -0.5, l2-0.5)
             i = np.outer(xe_col, np.ones(xe_row.shape[0]))
             j = np.outer(np.ones(xe_col.shape[0]), xe_row)
-            return x[:,:,i,j]
+            return x[:, :, i, j].clone()
     elif mode == 'periodic':
         # Vertical only
         if pad[0] == 0 and pad[1] == 0:
             xe = np.arange(x.shape[-2])
             xe = np.pad(xe, (pad[2], pad[3]), mode='wrap')
-            return x[:,:,xe]
+            return x[:, :, xe].clone()
         # Horizontal only
         elif pad[2] == 0 and pad[3] == 0:
             xe = np.arange(x.shape[-1])
             xe = np.pad(xe, (pad[0], pad[1]), mode='wrap')
-            return x[:,:,:,xe]
+            return x[:, :, :, xe].clone()
         # Both
         else:
             xe_col = np.arange(x.shape[-2])
@@ -78,7 +78,7 @@ def mypad(x, pad, mode='constant', value=0):
             xe_row = np.pad(xe_row, (pad[0], pad[1]), mode='wrap')
             i = np.outer(xe_col, np.ones(xe_row.shape[0]))
             j = np.outer(np.ones(xe_col.shape[0]), xe_row)
-            return x[:,:,i,j]
+            return x[:, :, i, j].clone()
 
     elif mode == 'constant' or mode == 'reflect' or mode == 'replicate':
         return F.pad(x, pad, mode, value)
@@ -122,7 +122,7 @@ def afb1d(x, h0, h1, mode='zero', dim=-1):
                           dtype=torch.float, device=x.device)
     L = h0.numel()
     L2 = L // 2
-    shape = [1,1,1,1]
+    shape = [1, 1, 1, 1]
     shape[d] = L
     # If h aren't in the right shape, make them so
     if h0.shape != tuple(shape):
@@ -134,20 +134,20 @@ def afb1d(x, h0, h1, mode='zero', dim=-1):
     if mode == 'per' or mode == 'periodization':
         if x.shape[dim] % 2 == 1:
             if d == 2:
-                x = torch.cat((x, x[:,:,-1:]), dim=2)
+                x = torch.cat((x, x[:, :, -1:].clone()), dim=2)
             else:
-                x = torch.cat((x, x[:,:,:,-1:]), dim=3)
+                x = torch.cat((x, x[:, :, :, -1:].clone()), dim=3)
             N += 1
         x = roll(x, -L2, dim=d)
         pad = (L-1, 0) if d == 2 else (0, L-1)
         lohi = F.conv2d(x, h, padding=pad, stride=s, groups=C)
         N2 = N//2
         if d == 2:
-            lohi[:,:,:L2] = lohi[:,:,:L2] + lohi[:,:,N2:N2+L2]
-            lohi = lohi[:,:,:N2]
+            lohi[:, :, :L2] = lohi[:, :, :L2].clone() + lohi[:, :, N2:N2+L2].clone()
+            lohi = lohi[:, :, :N2].clone()
         else:
-            lohi[:,:,:,:L2] = lohi[:,:,:,:L2] + lohi[:,:,:,N2:N2+L2]
-            lohi = lohi[:,:,:,:N2]
+            lohi[:, :, :, :L2] = lohi[:, :, :, :L2].clone() + lohi[:, :, :, N2:N2+L2].clone()
+            lohi = lohi[:, :, :, :N2].clone()
     else:
         # Calculate the pad size
         outsize = pywt.dwt_coeff_len(N, L, mode=mode)
@@ -205,7 +205,7 @@ def afb1d_atrous(x, h0, h1, mode='periodic', dim=-1, dilation=1):
         h1 = torch.tensor(np.copy(np.array(h1).ravel()[::-1]),
                           dtype=torch.float, device=x.device)
     L = h0.numel()
-    shape = [1,1,1,1]
+    shape = [1, 1, 1, 1]
     shape[d] = L
     # If h aren't in the right shape, make them so
     if h0.shape != tuple(shape):
@@ -237,7 +237,7 @@ def sfb1d(lo, hi, g0, g1, mode='zero', dim=-1):
         g1 = torch.tensor(np.copy(np.array(g1).ravel()),
                           dtype=torch.float, device=lo.device)
     L = g0.numel()
-    shape = [1,1,1,1]
+    shape = [1, 1, 1, 1]
     shape[d] = L
     N = 2*lo.shape[d]
     # If g aren't in the right shape, make them so
@@ -246,18 +246,18 @@ def sfb1d(lo, hi, g0, g1, mode='zero', dim=-1):
     if g1.shape != tuple(shape):
         g1 = g1.reshape(*shape)
 
-    s = (2, 1) if d == 2 else (1,2)
-    g0 = torch.cat([g0]*C,dim=0)
-    g1 = torch.cat([g1]*C,dim=0)
+    s = (2, 1) if d == 2 else (1, 2)
+    g0 = torch.cat([g0]*C, dim=0)
+    g1 = torch.cat([g1]*C, dim=0)
     if mode == 'per' or mode == 'periodization':
         y = F.conv_transpose2d(lo, g0, stride=s, groups=C) + \
             F.conv_transpose2d(hi, g1, stride=s, groups=C)
         if d == 2:
-            y[:,:,:L-2] = y[:,:,:L-2] + y[:,:,N:N+L-2]
-            y = y[:,:,:N]
+            y[:, :, :L-2] = y[:, :, :L-2].clone() + y[:, :, N:N+L-2].clone()
+            y = y[:, :, :N].clone()
         else:
-            y[:,:,:,:L-2] = y[:,:,:,:L-2] + y[:,:,:,N:N+L-2]
-            y = y[:,:,:,:N]
+            y[:, :, :, :L-2] = y[:, :, :, :L-2].clone() + y[:, :, :, N:N+L-2].clone()
+            y = y[:, :, :, :N].clone()
         y = roll(y, 1-L//2, dim=dim)
     else:
         if mode == 'zero' or mode == 'symmetric' or mode == 'reflect' or \
@@ -344,8 +344,8 @@ class AFB2D(Function):
         y = y.reshape(s[0], -1, 4, s[-2], s[-1])
         # low = y[:,:,0].contiguous()
         # highs = y[:,:,1:].contiguous()
-        low = y[:,:,0].clone()
-        highs = y[:,:,1:].clone()
+        low = y[:, :, 0].clone()
+        highs = y[:, :, 1:].clone()
         return low, highs
 
     @staticmethod
@@ -365,11 +365,11 @@ class AFB2D(Function):
             # elif dx.shape[-1] > ctx.shape[-1]:
             #     dx = dx[:,:,:,:ctx.shape[-1]]
             if dx.shape[-2] > ctx.shape[-2] and dx.shape[-1] > ctx.shape[-1]:
-                dx = dx[:,:,:ctx.shape[-2], :ctx.shape[-1]].clone()
+                dx = dx[:, :, :ctx.shape[-2], :ctx.shape[-1]].clone()
             elif dx.shape[-2] > ctx.shape[-2]:
-                dx = dx[:,:,:ctx.shape[-2]].clone()
+                dx = dx[:, :, :ctx.shape[-2]].clone()
             elif dx.shape[-1] > ctx.shape[-1]:
-                dx = dx[:,:,:,:ctx.shape[-1]].clone()
+                dx = dx[:, :, :, :ctx.shape[-1]].clone()
         return dx, None, None, None, None, None
 
 
@@ -452,9 +452,9 @@ def afb2d_atrous(x, filts, mode='periodization', dilation=1):
                 h0, h1, device=x.device)
         else:
             h0_col = h0
-            h0_row = h0.transpose(2,3)
+            h0_row = h0.transpose(2, 3)
             h1_col = h1
-            h1_row = h1.transpose(2,3)
+            h1_row = h1.transpose(2, 3)
     elif len(filts) == 4:
         if True in tensorize:
             h0_col, h1_col, h0_row, h1_row = prep_filt_afb2d(
@@ -505,18 +505,18 @@ def afb2d_nonsep(x, filts, mode='zero'):
 
     if mode == 'periodization' or mode == 'per':
         if x.shape[2] % 2 == 1:
-            x = torch.cat((x, x[:,:,-1:].clone()), dim=2)
+            x = torch.cat((x, x[:, :, -1:].clone()), dim=2)
             Ny += 1
         if x.shape[3] % 2 == 1:
-            x = torch.cat((x, x[:,:,:,-1:].clone()), dim=3)
+            x = torch.cat((x, x[:, :, :, -1:].clone()), dim=3)
             Nx += 1
         pad = (Ly-1, Lx-1)
         stride = (2, 2)
         x = roll(roll(x, -Ly//2, dim=2), -Lx//2, dim=3)
         y = F.conv2d(x, f, padding=pad, stride=stride, groups=C)
-        y[:,:,:Ly//2] += y[:,:,Ny//2:Ny//2+Ly//2]
-        y[:,:,:,:Lx//2] += y[:,:,:,Nx//2:Nx//2+Lx//2]
-        y = y[:,:,:Ny//2, :Nx//2]
+        y[:, :, :Ly//2] = y[:, :, :Ly//2].clone() + y[:, :, Ny//2:Ny//2+Ly//2].clone()
+        y[:, :, :, :Lx//2] = y[:, :, :, :Lx//2].clone() + y[:, :, :, Nx//2:Nx//2+Lx//2].clone()
+        y = y[:, :, :Ny//2, :Nx//2].clone()
     elif mode == 'zero' or mode == 'symmetric' or mode == 'reflect':
         # Calculate the pad size
         out1 = pywt.dwt_coeff_len(Ny, Ly, mode=mode)
@@ -575,9 +575,9 @@ def sfb2d(ll, lh, hl, hh, filts, mode='zero'):
             g0_col, g1_col, g0_row, g1_row = prep_filt_sfb2d(g0, g1)
         else:
             g0_col = g0
-            g0_row = g0.transpose(2,3)
+            g0_row = g0.transpose(2, 3)
             g1_col = g1
-            g1_row = g1.transpose(2,3)
+            g1_row = g1.transpose(2, 3)
     elif len(filts) == 4:
         if True in tensorize:
             g0_col, g1_col, g0_row, g1_row = prep_filt_sfb2d(*filts)
@@ -640,8 +640,8 @@ class SFB2D(Function):
             dx = dx.reshape(s[0], -1, 4, s[-2], s[-1])
             # dlow = dx[:,:,0].contiguous()
             # dhigh = dx[:,:,1:].contiguous()
-            dlow = dx[:,:,0].clone()
-            dhigh = dx[:,:,1:].clone()
+            dlow = dx[:, :, 0].clone()
+            dhigh = dx[:, :, 1:].clone()
 
         return dlow, dhigh, None, None, None, None, None
 
@@ -687,9 +687,9 @@ def sfb2d_nonsep(coeffs, filts, mode='zero'):
     x = coeffs.reshape(coeffs.shape[0], -1, coeffs.shape[-2], coeffs.shape[-1])
     if mode == 'periodization' or mode == 'per':
         ll = F.conv_transpose2d(x, f, groups=C, stride=2)
-        ll[:,:,:Ly-2] += ll[:,:,2*Ny:2*Ny+Ly-2]
-        ll[:,:,:,:Lx-2] += ll[:,:,:,2*Nx:2*Nx+Lx-2]
-        ll = ll[:,:,:2*Ny,:2*Nx]
+        ll[:, :, :Ly-2] = ll[:, :, :Ly-2].clone() + ll[:, :, 2*Ny:2*Ny+Ly-2].clone()
+        ll[:, :, :, :Lx-2] = ll[:, :, :, :Lx-2].clone() + ll[:, :, :, 2*Nx:2*Nx+Lx-2].clone()
+        ll = ll[:, :, :2*Ny, :2*Nx].clone()
         ll = roll(roll(ll, 1-Ly//2, dim=2), 1-Lx//2, dim=3)
     elif mode == 'symmetric' or mode == 'zero' or mode == 'reflect' or \
             mode == 'periodic':
@@ -730,8 +730,8 @@ def prep_filt_afb2d_nonsep(h0_col, h1_col, h0_row=None, h1_row=None,
     lh = np.outer(h1_col, h0_row)
     hl = np.outer(h0_col, h1_row)
     hh = np.outer(h1_col, h1_row)
-    filts = np.stack([ll[None,::-1,::-1], lh[None,::-1,::-1],
-                      hl[None,::-1,::-1], hh[None,::-1,::-1]], axis=0)
+    filts = np.stack([ll[None, ::-1, ::-1], lh[None, ::-1, ::-1],
+                      hl[None, ::-1, ::-1], hh[None, ::-1, ::-1]], axis=0)
     filts = torch.tensor(filts, dtype=torch.get_default_dtype(), device=device)
     return filts
 
@@ -795,10 +795,10 @@ def prep_filt_sfb2d(g0_col, g1_col, g0_row=None, g1_row=None, device=None):
         g0_row = g0_col
     if g1_row is None:
         g1_row = g1_col
-    g0_col = torch.tensor(g0_col, device=device, dtype=t).reshape((1,1,-1,1))
-    g1_col = torch.tensor(g1_col, device=device, dtype=t).reshape((1,1,-1,1))
-    g0_row = torch.tensor(g0_row, device=device, dtype=t).reshape((1,1,1,-1))
-    g1_row = torch.tensor(g1_row, device=device, dtype=t).reshape((1,1,1,-1))
+    g0_col = torch.tensor(g0_col, device=device, dtype=t).reshape((1, 1, -1, 1))
+    g1_col = torch.tensor(g1_col, device=device, dtype=t).reshape((1, 1, -1, 1))
+    g1_row = torch.tensor(g1_row, device=device, dtype=t).reshape((1, 1, 1, -1))
+    g0_row = torch.tensor(g0_row, device=device, dtype=t).reshape((1, 1, 1, -1))
 
     return g0_col, g1_col, g0_row, g1_row
 
@@ -832,9 +832,9 @@ def prep_filt_afb2d(h0_col, h1_col, h0_row=None, h1_row=None, device=None):
         h1_row = h1_col
     else:
         h1_row = np.array(h1_row[::-1]).ravel()
-    h0_col = torch.tensor(h0_col, device=device, dtype=t).reshape((1,1,-1,1))
-    h1_col = torch.tensor(h1_col, device=device, dtype=t).reshape((1,1,-1,1))
-    h0_row = torch.tensor(h0_row, device=device, dtype=t).reshape((1,1,1,-1))
-    h1_row = torch.tensor(h1_row, device=device, dtype=t).reshape((1,1,1,-1))
+    h0_col = torch.tensor(h0_col, device=device, dtype=t).reshape((1, 1, -1, 1))
+    h1_col = torch.tensor(h1_col, device=device, dtype=t).reshape((1, 1, -1, 1))
+    h0_row = torch.tensor(h0_row, device=device, dtype=t).reshape((1, 1, 1, -1))
+    h1_row = torch.tensor(h1_row, device=device, dtype=t).reshape((1, 1, 1, -1))
 
     return h0_col, h1_col, h0_row, h1_row

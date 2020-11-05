@@ -69,7 +69,7 @@ class DWTForward(nn.Module):
         # Do a multilevel transform
         for j in range(self.J):
             # Do 1 level of the transform
-            ll_cur, high = lowlevel.AFB2D.apply(ll, self.h0_col, self.h1_col, self.h0_row, self.h1_row, mode)
+            ll_cur, high = lowlevel.AFB2D.apply(ll, self.h0_col.clone(), self.h1_col.clone(), self.h0_row.clone(), self.h1_row.clone(), mode)
             yh.append(high)
             ll = ll_cur
 

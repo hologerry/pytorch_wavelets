@@ -232,15 +232,17 @@ def sfb1d(lo, hi, g0, g1, mode='zero', dim=-1):
     # If g0, g1 are not tensors, make them. If they are, then assume that they
     # are in the right order
     if not isinstance(g0, torch.Tensor):
+        print("if not isinstance(g0, torch.Tensor):")
         g0 = torch.tensor(np.copy(np.array(g0).ravel()),
                           dtype=torch.float, device=lo.device)
     if not isinstance(g1, torch.Tensor):
+        print("if not isinstance(g1, torch.Tensor):")
         g1 = torch.tensor(np.copy(np.array(g1).ravel()),
                           dtype=torch.float, device=lo.device)
     L = g0.numel()
     shape = [1, 1, 1, 1]
     shape[d] = L
-    N = 2*lo.shape[d]
+    N = 2 * lo.shape[d]
     # If g aren't in the right shape, make them so
     if g0.shape != tuple(shape):
         g0 = g0.reshape(*shape)

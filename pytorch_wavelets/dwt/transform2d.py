@@ -136,9 +136,15 @@ class DWTInverse(nn.Module):
 
             # 'Unpad' added dimensions
             if ll_prev.shape[-2] > h.shape[-2]:
-                ll_prev = ll_prev[...,:-1,:].clone()
+                ll_prev = ll_prev[..., :-1, :].clone()
             if ll_prev.shape[-1] > h.shape[-1]:
-                ll_prev = ll_prev[...,:-1].clone()
+                ll_prev = ll_prev[..., :-1].clone()
+            print("ll_prev size", ll_prev.size())
+            print("h size", h.size())
+            print("self.g0_col size", self.g0_col.size())
+            print("self.g1_col size", self.g1_col.size())
+            print("self.g0_row size", self.g0_row.size())
+            print("self.g1_row size", self.g1_row.size())
             ll_cur = lowlevel.SFB2D.apply(ll_prev, h, self.g0_col, self.g1_col, self.g0_row, self.g1_row, mode)
             ll_prev = ll_cur
         return ll_prev
@@ -203,6 +209,6 @@ class SWTForward(nn.Module):
             # Do 1 level of the transform
             y = lowlevel.afb2d_atrous(ll, filts, self.mode, 2**j)
             coeffs.append(y)
-            ll = y[:,:,0].clone()
+            ll = y[:, :, 0].clone()
 
         return coeffs

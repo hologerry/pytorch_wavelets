@@ -4,7 +4,6 @@ import numpy as np
 from torch.autograd import Function
 from pytorch_wavelets.utils import reflect
 import pywt
-torch.autograd.set_detect_anomaly(True)
 
 
 def roll(x, n, dim, make_even=False):
@@ -232,11 +231,9 @@ def sfb1d(lo, hi, g0, g1, mode='zero', dim=-1):
     # If g0, g1 are not tensors, make them. If they are, then assume that they
     # are in the right order
     if not isinstance(g0, torch.Tensor):
-        print("if not isinstance(g0, torch.Tensor):")
         g0 = torch.tensor(np.copy(np.array(g0).ravel()),
                           dtype=torch.float, device=lo.device)
     if not isinstance(g1, torch.Tensor):
-        print("if not isinstance(g1, torch.Tensor):")
         g1 = torch.tensor(np.copy(np.array(g1).ravel()),
                           dtype=torch.float, device=lo.device)
     L = g0.numel()
@@ -341,9 +338,7 @@ class AFB2D(Function):
         ctx.shape = x.shape[-2:]
         mode = int_to_mode(mode)
         ctx.mode = mode
-        torch.autograd.set_detect_anomaly(True)
         lohi = afb1d(x, h0_row, h1_row, mode=mode, dim=3)
-        torch.autograd.set_detect_anomaly(True)
         y = afb1d(lohi, h0_col, h1_col, mode=mode, dim=2)
         s = y.shape
         y = y.reshape(s[0], -1, 4, s[-2], s[-1])
@@ -363,12 +358,6 @@ class AFB2D(Function):
             lo = sfb1d(low, lh, h0_col, h1_col, mode=mode, dim=2)
             hi = sfb1d(hl, hh, h0_col, h1_col, mode=mode, dim=2)
             dx = sfb1d(lo, hi, h0_row, h1_row, mode=mode, dim=3)
-            # if dx.shape[-2] > ctx.shape[-2] and dx.shape[-1] > ctx.shape[-1]:
-            #     dx = dx[:,:,:ctx.shape[-2], :ctx.shape[-1]]
-            # elif dx.shape[-2] > ctx.shape[-2]:
-            #     dx = dx[:,:,:ctx.shape[-2]]
-            # elif dx.shape[-1] > ctx.shape[-1]:
-            #     dx = dx[:,:,:,:ctx.shape[-1]]
             if dx.shape[-2] > ctx.shape[-2] and dx.shape[-1] > ctx.shape[-1]:
                 dx = dx[:, :, :ctx.shape[-2], :ctx.shape[-1]].clone()
             elif dx.shape[-2] > ctx.shape[-2]:

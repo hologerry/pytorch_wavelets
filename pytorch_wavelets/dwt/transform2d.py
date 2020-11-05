@@ -69,9 +69,8 @@ class DWTForward(nn.Module):
         # Do a multilevel transform
         for j in range(self.J):
             # Do 1 level of the transform
-            ll_cur, high = lowlevel.AFB2D.apply(ll, self.h0_col.clone(), self.h1_col.clone(), self.h0_row.clone(), self.h1_row.clone(), mode)
+            ll, high = lowlevel.AFB2D.apply(ll, self.h0_col.clone(), self.h1_col.clone(), self.h0_row.clone(), self.h1_row.clone(), mode)
             yh.append(high)
-            ll = ll_cur
 
         return ll, yh
 
@@ -140,12 +139,6 @@ class DWTInverse(nn.Module):
                 ll_prev = ll_prev[..., :-1, :].clone()
             if ll_prev.shape[-1] > h.shape[-1]:
                 ll_prev = ll_prev[..., :-1].clone()
-            print("ll_prev size", ll_prev.size())
-            print("h size", h.size())
-            print("self.g0_col size", self.g0_col.size())
-            print("self.g1_col size", self.g1_col.size())
-            print("self.g0_row size", self.g0_row.size())
-            print("self.g1_row size", self.g1_row.size())
             ll_cur = lowlevel.SFB2D.apply(ll_prev, h, self.g0_col.clone(), self.g1_col.clone(), self.g0_row.clone(), self.g1_row.clone(), mode)
             ll_prev = ll_cur
         return ll_prev
